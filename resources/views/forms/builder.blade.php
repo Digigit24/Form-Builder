@@ -129,6 +129,7 @@
                         try {
                             const res = await fetch(@json(route('forms.update', $form)), {
                                 method: 'PUT',
+                                redirect: 'manual',
                                 headers: {
                                     'Content-Type': 'application/json',
                                     'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
@@ -140,7 +141,7 @@
                                     steps: this.steps,
                                 }),
                             });
-                            if (!res.ok) {
+                            if (!res.ok && res.type !== 'opaqueredirect') {
                                 const body = await res.json().catch(() => ({}));
                                 alert('Save failed: ' + (body.message || res.status));
                                 return;

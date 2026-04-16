@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Form;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -37,7 +38,7 @@ class FormController extends Controller
         return view('forms.builder', ['form' => $form]);
     }
 
-    public function update(Request $request, Form $form): RedirectResponse
+    public function update(Request $request, Form $form): JsonResponse|RedirectResponse
     {
         $data = $request->validate([
             'title' => ['required', 'string', 'max:255'],
@@ -68,6 +69,10 @@ class FormController extends Controller
                 ]);
             }
         });
+
+        if ($request->wantsJson()) {
+            return response()->json(['ok' => true, 'message' => 'Form saved.']);
+        }
 
         return redirect()->route('forms.edit', $form)->with('status', 'Form saved.');
     }
