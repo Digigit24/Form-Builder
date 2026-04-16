@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Form;
+use App\Models\Response;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -82,6 +83,31 @@ class FormController extends Controller
         $form->delete();
 
         return redirect()->route('dashboard')->with('status', 'Form deleted.');
+    }
+
+    public function responses(Form $form): View
+    {
+        $form->load('steps');
+        $responses = $form->responses()
+            ->with('answers.step')
+            ->latest()
+            ->paginate(25);
+
+        return view('forms.responses', [
+            'form' => $form,
+            'responses' => $responses,
+        ]);
+    }
+
+    public function destroyResponse(Form $form, Response $response): RedirectResponse
+    {
+        if ($response->form_id !== $form->id) {
+            abort(404);
+        }
+
+        $response->delete();
+
+        return back()->with('status', 'Response deleted.');
     }
 
     public function publish(Form $form): RedirectResponse

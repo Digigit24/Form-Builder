@@ -26,6 +26,8 @@ Route::middleware('auth')->group(function () {
     Route::put('/forms/{form}',           [FormController::class, 'update'])->name('forms.update');
     Route::delete('/forms/{form}',        [FormController::class, 'destroy'])->name('forms.destroy');
     Route::post('/forms/{form}/publish',  [FormController::class, 'publish'])->name('forms.publish');
+    Route::get('/forms/{form}/responses', [FormController::class, 'responses'])->name('forms.responses');
+    Route::delete('/forms/{form}/responses/{response}', [FormController::class, 'destroyResponse'])->name('forms.responses.destroy');
 
     Route::get('/theme',  [TenantThemeController::class, 'edit'])->name('theme.edit');
     Route::put('/theme',  [TenantThemeController::class, 'update'])->name('theme.update');

@@ -65,9 +65,12 @@
                                             <span class="inline-flex items-center px-2 py-0.5 rounded text-xs bg-gray-100 text-gray-700">Draft</span>
                                         @endif
                                     </td>
-                                    <td class="px-6 py-4 text-gray-700">{{ $form->responses_count }}</td>
+                                    <td class="px-6 py-4">
+                                        <a href="{{ route('forms.responses', $form) }}" class="text-indigo-600 hover:text-indigo-900">{{ $form->responses_count }}</a>
+                                    </td>
                                     <td class="px-6 py-4 text-right space-x-3">
                                         <a href="{{ route('forms.edit', $form) }}" class="text-indigo-600 hover:text-indigo-900">Edit</a>
+                                        <a href="{{ route('forms.responses', $form) }}" class="text-gray-600 hover:text-gray-900">Responses</a>
                                         @if ($form->is_published)
                                             <a href="{{ route('public.form.show', $form->slug) }}" target="_blank" class="text-gray-600 hover:text-gray-900">Open</a>
                                         @endif

@@ -6,6 +6,7 @@
                 <h2 class="font-semibold text-xl text-gray-800 leading-tight">Edit form</h2>
             </div>
             <div class="flex items-center gap-3">
+                <a href="{{ route('forms.responses', $form) }}" class="text-sm text-gray-600 hover:text-gray-900 underline">Responses</a>
                 @if ($form->is_published)
                     <a href="{{ route('public.form.show', $form->slug) }}" target="_blank" class="text-sm text-gray-600 hover:text-gray-900 underline">Open public link</a>
                 @endif
