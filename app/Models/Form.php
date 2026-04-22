@@ -18,6 +18,7 @@ class Form extends Model
         'description',
         'is_published',
         'theme_config',
+        'settings',
     ];
 
     protected function casts(): array
@@ -25,7 +26,13 @@ class Form extends Model
         return [
             'is_published' => 'boolean',
             'theme_config' => 'array',
+            'settings' => 'array',
         ];
+    }
+
+    public function setting(string $key, mixed $default = null): mixed
+    {
+        return data_get($this->settings, $key, $default);
     }
 
     public function steps(): HasMany

@@ -11,6 +11,8 @@ use Illuminate\View\View;
 
 class PublicFormController extends Controller
 {
+    private const NON_INPUT_TYPES = ['welcome_screen', 'end_screen', 'statement'];
+
     public function show(string $slug): View
     {
         $form = Form::withoutGlobalScopes()
@@ -39,7 +41,8 @@ class PublicFormController extends Controller
             'answers' => ['required', 'array'],
         ]);
 
-        $stepIds = $form->steps->pluck('id')->all();
+        $inputSteps = $form->steps->reject(fn ($s) => in_array($s->type, self::NON_INPUT_TYPES));
+        $stepIds = $inputSteps->pluck('id')->all();
         $answers = collect($data['answers'])->only($stepIds);
 
         DB::transaction(function () use ($form, $answers) {
@@ -56,16 +59,20 @@ class PublicFormController extends Controller
             }
         });
 
+        $endScreen = $form->steps->firstWhere('type', 'end_screen');
+        $redirectUrl = data_get($endScreen, 'logic.redirect_url')
+            ?: $form->setting('redirect_url');
+
         return response()->json([
             'ok' => true,
-            'redirect' => route('public.form.thanks', $form->slug),
+            'redirect' => $redirectUrl ?: null,
         ]);
     }
 
     public function thanks(string $slug): View
     {
         $form = Form::withoutGlobalScopes()
-            ->with('tenant')
+            ->with(['tenant', 'steps'])
             ->where('slug', $slug)
             ->where('is_published', true)
             ->firstOrFail();

@@ -13,6 +13,14 @@ use Illuminate\View\View;
 
 class FormController extends Controller
 {
+    public const QUESTION_TYPES = [
+        'welcome_screen', 'short_text', 'long_text', 'email', 'phone',
+        'number', 'multiple_choice', 'checkboxes', 'dropdown', 'rating',
+        'yes_no', 'date', 'statement', 'end_screen',
+    ];
+
+    public const CHOICE_TYPES = ['multiple_choice', 'checkboxes', 'dropdown'];
+
     public function index(): RedirectResponse
     {
         return redirect()->route('dashboard');
@@ -27,6 +35,30 @@ class FormController extends Controller
             'slug' => $this->uniqueSlug($title),
             'description' => null,
             'is_published' => false,
+            'settings' => [
+                'progress_bar' => 'bar',
+                'submit_label' => 'Submit',
+                'redirect_url' => '',
+                'notify_email' => '',
+                'close_form' => false,
+                'response_limit' => null,
+            ],
+        ]);
+
+        // Auto-add welcome + end screen
+        $form->steps()->create([
+            'type' => 'welcome_screen',
+            'question' => $title,
+            'options' => null,
+            'order_index' => 0,
+            'logic' => ['subtitle' => '', 'button_label' => 'Start'],
+        ]);
+        $form->steps()->create([
+            'type' => 'end_screen',
+            'question' => 'Thank you!',
+            'options' => null,
+            'order_index' => 1,
+            'logic' => ['subtitle' => 'Your response has been recorded.', 'redirect_url' => ''],
         ]);
 
         return redirect()->route('forms.edit', $form);
@@ -44,29 +76,38 @@ class FormController extends Controller
         $data = $request->validate([
             'title' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
+            'settings' => ['nullable', 'array'],
             'steps' => ['array'],
-            'steps.*.type' => ['required', 'in:text,textarea,mcq,multi'],
+            'steps.*.type' => ['required', 'in:'.implode(',', self::QUESTION_TYPES)],
             'steps.*.question' => ['required', 'string'],
             'steps.*.options' => ['nullable', 'array'],
-            'steps.*.options.*' => ['string'],
+            'steps.*.logic' => ['nullable', 'array'],
         ]);
 
         DB::transaction(function () use ($form, $data) {
             $form->update([
                 'title' => $data['title'],
                 'description' => $data['description'] ?? null,
+                'settings' => array_merge($form->settings ?? [], $data['settings'] ?? []),
             ]);
 
             $form->steps()->delete();
 
             foreach ($data['steps'] ?? [] as $i => $step) {
+                $options = null;
+                if (in_array($step['type'], self::CHOICE_TYPES) && ! empty($step['options'])) {
+                    $options = array_values(array_filter(
+                        $step['options'],
+                        fn ($o) => is_string($o) && trim($o) !== ''
+                    ));
+                }
+
                 $form->steps()->create([
                     'type' => $step['type'],
                     'question' => $step['question'],
-                    'options' => in_array($step['type'], ['mcq', 'multi'])
-                        ? array_values(array_filter($step['options'] ?? [], fn ($o) => trim($o) !== ''))
-                        : null,
+                    'options' => $options,
                     'order_index' => $i,
+                    'logic' => $step['logic'] ?? null,
                 ]);
             }
         });
