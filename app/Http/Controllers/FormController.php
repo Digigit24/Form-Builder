@@ -21,44 +21,116 @@ class FormController extends Controller
 
     public const CHOICE_TYPES = ['multiple_choice', 'checkboxes', 'dropdown'];
 
+    private const TEMPLATES = [
+        'blank' => [
+            'title' => 'Untitled form',
+            'steps' => [],
+        ],
+        'customer_feedback' => [
+            'title' => 'Customer Feedback',
+            'steps' => [
+                ['type' => 'short_text',      'question' => "What's your name?",           'logic' => ['required' => true, 'placeholder' => 'Jane Doe']],
+                ['type' => 'email',           'question' => "What's your email?",           'logic' => ['required' => true, 'placeholder' => 'jane@example.com']],
+                ['type' => 'rating',          'question' => 'How would you rate us?',       'logic' => ['required' => true, 'scale' => 5, 'shape' => 'star']],
+                ['type' => 'long_text',       'question' => 'Any additional feedback?',     'logic' => ['placeholder' => 'Tell us what you think...']],
+            ],
+        ],
+        'job_application' => [
+            'title' => 'Job Application',
+            'steps' => [
+                ['type' => 'short_text',      'question' => 'Full name',                   'logic' => ['required' => true, 'placeholder' => 'Your full name']],
+                ['type' => 'email',           'question' => 'Email address',               'logic' => ['required' => true, 'placeholder' => 'you@example.com']],
+                ['type' => 'phone',           'question' => 'Phone number',                'logic' => ['placeholder' => '+1 (555) 000-0000']],
+                ['type' => 'short_text',      'question' => 'Position you are applying for', 'logic' => ['required' => true, 'placeholder' => 'e.g. Senior Designer']],
+                ['type' => 'multiple_choice', 'question' => 'Years of experience',         'logic' => ['required' => true], 'options' => ['0–1 years', '1–3 years', '3–5 years', '5+ years']],
+                ['type' => 'long_text',       'question' => 'Tell us about yourself',      'logic' => ['placeholder' => 'A short bio or cover note...']],
+            ],
+        ],
+        'contact_form' => [
+            'title' => 'Contact Form',
+            'steps' => [
+                ['type' => 'short_text',      'question' => 'Your name',                   'logic' => ['required' => true, 'placeholder' => 'Jane Doe']],
+                ['type' => 'email',           'question' => 'Your email',                  'logic' => ['required' => true, 'placeholder' => 'jane@example.com']],
+                ['type' => 'long_text',       'question' => 'Your message',                'logic' => ['required' => true, 'placeholder' => 'How can we help?']],
+            ],
+        ],
+        'nps_survey' => [
+            'title' => 'NPS Survey',
+            'steps' => [
+                ['type' => 'rating',          'question' => 'How likely are you to recommend us to a friend?', 'logic' => ['required' => true, 'scale' => 10, 'shape' => 'number']],
+                ['type' => 'long_text',       'question' => 'What is the main reason for your score?',         'logic' => ['placeholder' => 'Share your thoughts...']],
+            ],
+        ],
+        'exit_survey' => [
+            'title' => 'Exit Survey',
+            'steps' => [
+                ['type' => 'multiple_choice', 'question' => 'Why are you leaving?',        'logic' => ['required' => true], 'options' => ['Too expensive', 'Missing features', 'Found a better alternative', 'No longer needed', 'Other']],
+                ['type' => 'rating',          'question' => 'How satisfied were you overall?', 'logic' => ['required' => true, 'scale' => 5, 'shape' => 'star']],
+                ['type' => 'long_text',       'question' => 'Anything we could have done better?', 'logic' => ['placeholder' => 'Your feedback helps us improve...']],
+            ],
+        ],
+    ];
+
     public function index(): RedirectResponse
     {
         return redirect()->route('dashboard');
     }
 
+    public function create(): View
+    {
+        return view('forms.create');
+    }
+
     public function store(Request $request): RedirectResponse
     {
-        $title = trim($request->input('title', '')) ?: 'Untitled form';
+        $templateKey = $request->input('template', 'blank');
+        $template    = self::TEMPLATES[$templateKey] ?? self::TEMPLATES['blank'];
+        $title       = trim($request->input('title', '')) ?: $template['title'];
 
         $form = Form::create([
-            'title' => $title,
-            'slug' => $this->uniqueSlug($title),
-            'description' => null,
+            'title'        => $title,
+            'slug'         => $this->uniqueSlug($title),
+            'description'  => null,
             'is_published' => false,
-            'settings' => [
-                'progress_bar' => 'bar',
-                'submit_label' => 'Submit',
-                'redirect_url' => '',
-                'notify_email' => '',
-                'close_form' => false,
+            'settings'     => [
+                'progress_bar'   => 'bar',
+                'submit_label'   => 'Submit',
+                'redirect_url'   => '',
+                'notify_email'   => '',
+                'close_form'     => false,
                 'response_limit' => null,
             ],
         ]);
 
-        // Auto-add welcome + end screen
+        $order = 0;
+
+        // Welcome screen
         $form->steps()->create([
-            'type' => 'welcome_screen',
-            'question' => $title,
-            'options' => null,
-            'order_index' => 0,
-            'logic' => ['subtitle' => '', 'button_label' => 'Start'],
+            'type'        => 'welcome_screen',
+            'question'    => $title,
+            'options'     => null,
+            'order_index' => $order++,
+            'logic'       => ['subtitle' => '', 'button_label' => 'Start'],
         ]);
+
+        // Template-specific steps
+        foreach ($template['steps'] as $step) {
+            $form->steps()->create([
+                'type'        => $step['type'],
+                'question'    => $step['question'],
+                'options'     => $step['options'] ?? null,
+                'order_index' => $order++,
+                'logic'       => $step['logic'] ?? null,
+            ]);
+        }
+
+        // End screen
         $form->steps()->create([
-            'type' => 'end_screen',
-            'question' => 'Thank you!',
-            'options' => null,
-            'order_index' => 1,
-            'logic' => ['subtitle' => 'Your response has been recorded.', 'redirect_url' => ''],
+            'type'        => 'end_screen',
+            'question'    => 'Thank you!',
+            'options'     => null,
+            'order_index' => $order,
+            'logic'       => ['subtitle' => 'Your response has been recorded.', 'redirect_url' => ''],
         ]);
 
         return redirect()->route('forms.edit', $form);

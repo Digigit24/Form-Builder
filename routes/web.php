@@ -21,6 +21,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     Route::get('/forms',                  [FormController::class, 'index'])->name('forms.index');
+    Route::get('/forms/create',           [FormController::class, 'create'])->name('forms.create');
     Route::post('/forms',                 [FormController::class, 'store'])->name('forms.store');
     Route::get('/forms/{form}/edit',      [FormController::class, 'edit'])->name('forms.edit');
     Route::put('/forms/{form}',           [FormController::class, 'update'])->name('forms.update');
