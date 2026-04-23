@@ -8,21 +8,54 @@
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family={{ urlencode($theme['font_family']) }}:300,400,500,600,700&display=swap" rel="stylesheet">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @php
+        $fontSizeMap = ['small' => '14px', 'medium' => '16px', 'large' => '18px'];
+        $baseFontSize = $fontSizeMap[$theme['font_size'] ?? 'medium'] ?? '16px';
+        $radius = ($theme['round_corners'] ?? true) ? '0.625rem' : '0.25rem';
+        $isLight = $theme['is_light'] ?? false;
+        $alignment = $theme['alignment'] ?? 'left';
+    @endphp
     <style>
         :root {
-            --primary: {{ $theme['primary_color'] }};
-            --secondary: {{ $theme['secondary_color'] }};
-            --bg: {{ $theme['background_color'] }};
-            --font: '{{ $theme['font_family'] }}', system-ui, sans-serif;
+            --primary:        {{ $theme['primary_color'] }};
+            --bg:             {{ $theme['background_color'] }};
+            --color-question: {{ $theme['question_color'] }};
+            --color-answer:   {{ $theme['answer_color'] }};
+            --color-btn-text: {{ $theme['button_text_color'] }};
+            --color-star:     {{ $theme['star_color'] }};
+            --font:           '{{ $theme['font_family'] }}', system-ui, sans-serif;
+            --font-size:      {{ $baseFontSize }};
+            --radius:         {{ $radius }};
         }
         *, *::before, *::after { box-sizing: border-box; }
         html, body {
             margin: 0; height: 100%;
-            background: var(--bg); font-family: var(--font);
-            color: #fff; overflow: hidden;
+            background: var(--bg);
+            font-family: var(--font);
+            font-size: var(--font-size);
+            color: var(--color-question);
+            overflow: hidden;
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
         }
+        /* Background image rendered in its own layer for blur/opacity support */
+        #bg-image-layer {
+            position: fixed; inset: 0; z-index: 0; pointer-events: none;
+            @if($theme['background_image'] ?? null)
+            background-image: url('{{ $theme['background_image'] }}');
+            background-size: cover;
+            background-position: center;
+            filter: blur({{ $theme['background_blur'] ?? 0 }}px);
+            opacity: {{ ($theme['background_opacity'] ?? 100) / 100 }};
+            @php $blur = $theme['background_blur'] ?? 0; @endphp
+            @if($blur > 0)
+            transform: scale({{ number_format(1 + $blur * 0.012, 3) }});
+            @endif
+            @else
+            display: none;
+            @endif
+        }
+        .slide-content { text-align: {{ $alignment }}; }
 
         /* Subtle radial glow behind the form */
         body::before {
@@ -55,8 +88,8 @@
         /* Text input */
         .tf-input {
             background: transparent; border: none;
-            border-bottom: 2px solid rgba(255,255,255,.15);
-            color: #fff;
+            border-bottom: 2px solid rgba(128,128,128,.22);
+            color: var(--color-answer);
             font-size: clamp(1.1875rem, 3vw, 1.5rem);
             width: 100%; padding: .875rem 0; outline: none;
             font-family: var(--font); font-weight: 400; line-height: 1.5;
@@ -66,16 +99,16 @@
             border-bottom-color: var(--primary);
             box-shadow: 0 1px 0 0 var(--primary);
         }
-        .tf-input::placeholder { color: rgba(255,255,255,.22); }
+        .tf-input::placeholder { color: var(--color-answer); opacity: .25; }
         textarea.tf-input { resize: none; }
         select.tf-input { -webkit-appearance: none; cursor: pointer; }
 
         /* OK / submit button */
         .tf-btn {
             display: inline-flex; align-items: center; gap: .5rem;
-            background: var(--primary); color: #fff; border: none;
+            background: var(--primary); color: var(--color-btn-text); border: none;
             padding: .75rem 1.625rem;
-            border-radius: .5rem; font-size: .875rem; font-weight: 600;
+            border-radius: var(--radius); font-size: .875rem; font-weight: 600;
             cursor: pointer; font-family: var(--font); letter-spacing: .015em;
             transition: transform .17s, filter .17s;
             position: relative; overflow: hidden;
@@ -92,8 +125,8 @@
         /* Hero start button (welcome screen) */
         .hero-btn {
             display: inline-flex; align-items: center; gap: .625rem;
-            background: var(--primary); color: #fff; border: none;
-            padding: 1rem 2.375rem; border-radius: .625rem;
+            background: var(--primary); color: var(--color-btn-text); border: none;
+            padding: 1rem 2.375rem; border-radius: var(--radius);
             font-size: 1.0625rem; font-weight: 600;
             cursor: pointer; font-family: var(--font); letter-spacing: .01em;
             transition: transform .2s, filter .2s;
@@ -107,89 +140,98 @@
             display: flex; align-items: center; gap: .875rem;
             width: 100%; text-align: left;
             padding: .875rem 1.125rem;
-            border: 1.5px solid rgba(255,255,255,.1);
-            border-radius: .625rem;
-            background: rgba(255,255,255,.025);
-            color: rgba(255,255,255,.82);
+            border: 1.5px solid rgba(128,128,128,.18);
+            border-radius: var(--radius);
+            background: rgba(128,128,128,.04);
+            color: var(--color-question);
+            opacity: .85;
             cursor: pointer; font-size: .9375rem; font-family: var(--font);
-            transition: border-color .15s, background .15s, transform .15s;
+            transition: border-color .15s, background .15s, transform .15s, opacity .15s;
             margin-bottom: .4375rem;
         }
         .choice-btn:hover {
-            border-color: rgba(255,255,255,.22);
-            background: rgba(255,255,255,.055);
+            border-color: rgba(128,128,128,.32);
+            background: rgba(128,128,128,.08);
+            opacity: 1;
             transform: translateX(3px);
         }
         .choice-btn.selected {
             border-color: var(--primary);
-            background: rgba(99,102,241,.14);
-            color: #fff;
+            background: color-mix(in srgb, var(--primary) 12%, transparent);
+            color: var(--color-question);
+            opacity: 1;
         }
         .choice-key {
             width: 1.625rem; height: 1.625rem;
-            border-radius: .3125rem; border: 1.5px solid rgba(255,255,255,.18);
+            border-radius: .3125rem; border: 1.5px solid rgba(128,128,128,.25);
             display: flex; align-items: center; justify-content: center;
             font-size: .625rem; font-weight: 700; flex-shrink: 0;
             letter-spacing: .05em;
             transition: background .15s, border-color .15s, color .15s;
         }
         .choice-btn.selected .choice-key {
-            background: var(--primary); border-color: var(--primary); color: #fff;
+            background: var(--primary); border-color: var(--primary);
+            color: var(--color-btn-text);
         }
 
         /* Rating stars / numbers */
         .rating-btn {
             width: 3.125rem; height: 3.125rem;
-            border-radius: .625rem;
-            border: 1.5px solid rgba(255,255,255,.1);
+            border-radius: var(--radius);
+            border: 1.5px solid rgba(128,128,128,.18);
             display: flex; align-items: center; justify-content: center;
             cursor: pointer;
             transition: border-color .18s, background .18s, transform .18s, color .18s;
-            background: rgba(255,255,255,.025);
-            color: rgba(255,255,255,.3);
+            background: rgba(128,128,128,.04);
+            color: var(--color-question);
+            opacity: .4;
         }
         .rating-btn:hover {
-            border-color: rgba(255,255,255,.22);
-            background: rgba(255,255,255,.065);
+            border-color: rgba(128,128,128,.32);
+            background: rgba(128,128,128,.08);
             transform: translateY(-3px) scale(1.09);
-            color: rgba(255,255,255,.8);
+            opacity: .85;
         }
         .rating-btn.selected {
-            border-color: var(--primary);
-            background: rgba(99,102,241,.2);
-            color: var(--primary);
+            border-color: var(--color-star);
+            background: color-mix(in srgb, var(--color-star) 15%, transparent);
+            color: var(--color-star);
+            opacity: 1;
             transform: translateY(-1px);
         }
 
         /* Yes / No */
         .yesno-btn {
             flex: 1; padding: 1.125rem 1rem;
-            border-radius: .75rem; border: 1.5px solid rgba(255,255,255,.1);
+            border-radius: var(--radius); border: 1.5px solid rgba(128,128,128,.18);
             text-align: center; font-weight: 600; font-size: 1rem;
             cursor: pointer; font-family: var(--font);
             transition: border-color .18s, background .18s, transform .18s, color .18s;
-            background: rgba(255,255,255,.025);
-            color: rgba(255,255,255,.75);
+            background: rgba(128,128,128,.04);
+            color: var(--color-question);
+            opacity: .75;
             display: flex; flex-direction: column; align-items: center; gap: .375rem;
         }
         .yesno-btn:hover {
-            border-color: rgba(255,255,255,.22);
-            background: rgba(255,255,255,.065);
-            transform: translateY(-2px); color: #fff;
+            border-color: rgba(128,128,128,.32);
+            background: rgba(128,128,128,.08);
+            transform: translateY(-2px); opacity: 1;
         }
         .yesno-btn.selected {
             border-color: var(--primary);
-            background: rgba(99,102,241,.15); color: #fff;
+            background: color-mix(in srgb, var(--primary) 12%, transparent);
+            color: var(--color-question);
+            opacity: 1;
         }
 
         /* Keyboard hint row */
         .kbd-hint {
             display: inline-flex; align-items: center; gap: .3rem;
-            font-size: .6875rem; color: rgba(255,255,255,.27);
-            margin-top: .875rem; letter-spacing: .025em;
+            font-size: .6875rem; color: var(--color-question);
+            opacity: .28; margin-top: .875rem; letter-spacing: .025em;
         }
         kbd {
-            background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.12);
+            background: rgba(128,128,128,.1); border: 1px solid rgba(128,128,128,.18);
             padding: .125rem .375rem; border-radius: .25rem;
             font-size: .625rem; font-family: inherit; font-weight: 600;
         }
@@ -197,8 +239,8 @@
         /* Question number label */
         .q-label {
             display: flex; align-items: center; gap: .3rem;
-            font-size: .75rem; color: rgba(255,255,255,.35);
-            margin-bottom: .875rem; font-weight: 500; letter-spacing: .04em;
+            font-size: .75rem; color: var(--color-question);
+            opacity: .35; margin-bottom: .875rem; font-weight: 500; letter-spacing: .04em;
         }
         .q-arrow { color: var(--primary); font-style: normal; }
 
@@ -207,22 +249,33 @@
             position: fixed; bottom: 0; left: 0; right: 0;
             padding: 1.125rem 1.5rem 1.5rem;
             display: flex; align-items: center; justify-content: space-between;
-            background: linear-gradient(to top, rgba(0,0,0,.5) 0%, transparent 100%);
+            background: linear-gradient(to top, color-mix(in srgb, var(--bg) 80%, transparent) 0%, transparent 100%);
             z-index: 50;
         }
         .nav-arrow {
-            width: 2.25rem; height: 2.25rem; border-radius: .5rem;
-            border: 1px solid rgba(255,255,255,.1);
-            background: rgba(255,255,255,.04);
+            width: 2.25rem; height: 2.25rem; border-radius: var(--radius);
+            border: 1px solid rgba(128,128,128,.18);
+            background: rgba(128,128,128,.05);
             display: flex; align-items: center; justify-content: center;
-            cursor: pointer; color: rgba(255,255,255,.4);
-            transition: background .15s, color .15s, border-color .15s;
+            cursor: pointer; color: var(--color-question);
+            opacity: .4;
+            transition: background .15s, color .15s, border-color .15s, opacity .15s;
         }
         .nav-arrow:hover:not(:disabled) {
-            background: rgba(255,255,255,.09); color: #fff;
-            border-color: rgba(255,255,255,.2);
+            background: rgba(128,128,128,.1);
+            border-color: rgba(128,128,128,.3);
+            opacity: 1;
         }
-        .nav-arrow:disabled { opacity: .22; cursor: not-allowed; }
+        .nav-arrow:disabled { opacity: .15; cursor: not-allowed; }
+
+        /* Ensure slide text inherits theme color */
+        .slide h1, .slide h2 { color: var(--color-question); }
+        /* Subtitle / muted text */
+        .tf-muted { color: var(--color-question); opacity: .45; }
+        .tf-subtle { color: var(--color-question); opacity: .28; }
+        /* Alignment */
+        .slide-content { text-align: {{ $alignment }}; }
+        .slide-content.text-center { text-align: center; }
 
         /* Animated checkmark (end screen) */
         @keyframes circle-pop {
@@ -242,6 +295,14 @@
 </head>
 <body>
 
+<div id="bg-image-layer"></div>
+
+@if($theme['logo'] ?? null)
+<div class="fixed top-5 left-6 z-50">
+    <img src="{{ $theme['logo'] }}" alt="Logo" class="h-8 w-auto max-w-[140px] object-contain">
+</div>
+@endif
+
 <div
     x-data="formFlow({{ Js::from([
         'steps' => $form->steps->map(fn ($s) => [
@@ -256,7 +317,7 @@
         'settings'  => $form->settings ?? [],
     ]) }})"
     @keydown.window="handleKey($event)"
-    class="relative h-screen w-full"
+    class="relative h-screen w-full z-10"
 >
 
     {{-- ── Progress indicator ─────────────────────────────────────────────── --}}
@@ -266,14 +327,14 @@
                 <div class="progress" :style="`width: ${progress}%`"></div>
             </template>
             <template x-if="(settings.progress_bar || 'bar') === 'percentage'">
-                <div class="fixed top-4 right-6 text-xs text-white/30 z-50 font-semibold tracking-wide tabular-nums"
+                <div class="fixed top-4 right-6 text-xs z-50 font-semibold tracking-wide tabular-nums tf-subtle"
                      x-text="Math.round(progress) + '%'"></div>
             </template>
             <template x-if="(settings.progress_bar || 'bar') === 'dots'">
                 <div class="fixed top-5 left-1/2 -translate-x-1/2 flex gap-1.5 z-50 items-center">
                     <template x-for="(_, di) in steps" :key="di">
                         <div class="h-1.5 rounded-full transition-all duration-300"
-                             :class="di < currentStep ? 'w-4 bg-white/55' : di === currentStep ? 'w-6 bg-white' : 'w-1.5 bg-white/14'"></div>
+                             :style="di < currentStep ? 'width:1rem;background:var(--color-question);opacity:.55' : di === currentStep ? 'width:1.5rem;background:var(--color-question);opacity:1' : 'width:0.375rem;background:var(--color-question);opacity:.18'"></div>
                     </template>
                 </div>
             </template>
@@ -283,14 +344,14 @@
     {{-- ── Slides ──────────────────────────────────────────────────────────── --}}
     <template x-for="(step, i) in steps" :key="step.id || i">
         <div class="slide" :class="slideClass(i)">
-            <div class="w-full max-w-2xl mx-auto">
+            <div class="slide-content w-full max-w-2xl mx-auto">
 
                 {{-- Welcome screen --}}
                 <template x-if="step.type === 'welcome_screen'">
                     <div class="text-center py-6">
                         <h1 class="text-5xl md:text-6xl font-bold mb-5 leading-tight tracking-tight"
                             x-text="step.question"></h1>
-                        <p class="text-xl text-white/45 mb-12 font-light max-w-lg mx-auto leading-relaxed"
+                        <p class="text-xl tf-muted mb-12 font-light max-w-lg mx-auto leading-relaxed"
                            x-text="step.logic.subtitle || step.logic.description || ''"></p>
                         <button @click="next()" class="hero-btn">
                             <span x-text="step.logic.button_label || 'Start'"></span>
@@ -308,7 +369,7 @@
                             <svg class="w-20 h-20 check-circle" viewBox="0 0 80 80" fill="none">
                                 <circle cx="40" cy="40" r="38"
                                         stroke="var(--primary)" stroke-width="1.5"
-                                        fill="rgba(99,102,241,.08)"/>
+                                        fill="color-mix(in srgb, var(--primary) 8%, transparent)"/>
                                 <path class="check-path"
                                       d="M24 41l12 11 20-24"
                                       stroke="var(--primary)" stroke-width="3"
@@ -317,7 +378,7 @@
                         </div>
                         <h1 class="text-4xl md:text-5xl font-bold mb-4 tracking-tight"
                             x-text="step.question || 'Thank you!'"></h1>
-                        <p class="text-lg text-white/45 font-light"
+                        <p class="text-lg tf-muted font-light"
                            x-text="step.logic.subtitle || step.logic.description || ''"></p>
                     </div>
                 </template>
@@ -327,7 +388,7 @@
                     <div>
                         <h1 class="text-4xl md:text-5xl font-bold mb-4 leading-snug tracking-tight"
                             x-text="step.question"></h1>
-                        <p class="text-lg text-white/45 mb-10 font-light leading-relaxed"
+                        <p class="text-lg tf-muted mb-10 font-light leading-relaxed"
                            x-text="step.logic.description || ''"></p>
                         <button @click="next()" class="tf-btn" x-text="step.logic.button_label || 'Continue'"></button>
                     </div>
@@ -349,7 +410,7 @@
                         </h1>
 
                         <p x-show="step.logic.description"
-                           class="text-white/40 text-base mt-3 font-light leading-relaxed"
+                           class="tf-muted text-base mt-3 font-light leading-relaxed"
                            x-text="step.logic.description"></p>
 
                         <div class="mt-8">
@@ -550,7 +611,7 @@
             </svg>
         </button>
 
-        <span class="text-[11px] text-white/18 tracking-widest uppercase font-medium select-none">
+        <span class="text-[11px] tracking-widest uppercase font-medium select-none tf-subtle">
             Form Builder
         </span>
 

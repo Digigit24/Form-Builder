@@ -27,6 +27,7 @@ Route::middleware('auth')->group(function () {
     Route::put('/forms/{form}',           [FormController::class, 'update'])->name('forms.update');
     Route::delete('/forms/{form}',        [FormController::class, 'destroy'])->name('forms.destroy');
     Route::post('/forms/{form}/publish',  [FormController::class, 'publish'])->name('forms.publish');
+    Route::post('/forms/{form}/media',    [FormController::class, 'uploadMedia'])->name('forms.media');
     Route::get('/forms/{form}/responses', [FormController::class, 'responses'])->name('forms.responses');
     Route::delete('/forms/{form}/responses/{response}', [FormController::class, 'destroyResponse'])->name('forms.responses.destroy');
 
